@@ -39,16 +39,42 @@ The platform is built on a robust **MERN-like stack** optimized for performance 
 
 ```text
 smart-investment-advisor/
-├── client/              # React frontend (Vite, Tailwind, Chart.js)
-│   ├── src/components   # Reusable UI elements
-│   ├── src/pages        # Application screens
-│   └── src/context      # Global state (Market & User)
-├── server/              # Node.js backend (Express, MySQL, AI SDKs)
-│   ├── config/          # DB and Environment setups
-│   ├── controllers/     # Business logic for AI and Market data
-│   └── routes/          # API endpoint definitions
-└── database/            # SQL Schema and initialization scripts
+├── client/                     # React Frontend (Vite)
+│   ├── src/
+│   │   ├── components/         # Reusable UI Components
+│   │   │   ├── ui/             # Atomic UI elements (Buttons, Inputs, etc.)
+│   │   │   ├── AIFloatingChat.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── Charts.jsx
+│   │   │   └── ...
+│   │   ├── pages/              # Main Application Screens
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Market.jsx
+│   │   │   ├── Simulator.jsx
+│   │   │   └── ...
+│   │   ├── context/            # State Management (User, Market)
+│   │   ├── services/           # API & Mock Data Services
+│   │   ├── App.jsx             # Main App Component
+│   │   └── main.jsx            # Entry point
+│   ├── public/                 # Static assets
+│   ├── tailwind.config.js      # Styling configuration
+│   └── vite.config.js          # Build configuration
+├── server/                     # Node.js Backend (Express)
+│   ├── config/                 # DB & API Configurations
+│   │   ├── db.js
+│   │   └── dbConfig.js
+│   ├── controllers/            # Request Handlers & AI Logic
+│   │   ├── aiController.js
+│   │   ├── marketController.js
+│   │   └── advisorController.js
+│   ├── routes/                 # API Endpoint Definitions
+│   │   └── advisorRoutes.js
+│   ├── app.js                  # Express App Setup
+│   └── package.json            # Server Dependencies
+└── database/                   # Database Scripts
+    └── schema.sql              # MySQL Schema Definition
 ```
+
 
 ## ⚙️ Installation & Setup
 
