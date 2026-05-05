@@ -49,18 +49,20 @@ function ruleBasedRecommendation(quote) {
 // ---------- GET STOCK RECOMMENDATIONS ----------
 export const getRecommendations = async (req, res) => {
   try {
+    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS', 'TCS.NS', 'INFY.NS'];
     let quotes = await getCachedMarketData();
     
+    // If cache is simplified data, we might need raw quotes for the rule-based engine or AI
+    // However, let's try to use what we have or fetch if missing
     if (!quotes) {
-      const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS', 'TCS.NS', 'INFY.NS'];
       quotes = await yahooFinance.quote(symbols);
     }
 
     const stockSummaries = quotes.map(q => ({
       symbol: q.symbol,
-      name: q.shortName || q.symbol,
-      price: q.regularMarketPrice,
-      changePercent: q.regularMarketChangePercent,
+      name: q.shortName || q.name || q.symbol,
+      price: q.regularMarketPrice || q.price,
+      changePercent: q.regularMarketChangePercent || parseFloat(q.change) || 0,
       pe: q.trailingPE,
       fiftyTwoWeekHigh: q.fiftyTwoWeekHigh,
       fiftyTwoWeekLow: q.fiftyTwoWeekLow,
@@ -74,9 +76,9 @@ export const getRecommendations = async (req, res) => {
         const rec = ruleBasedRecommendation(q);
         return {
           symbol: q.symbol,
-          name: q.shortName || q.symbol,
-          price: q.regularMarketPrice,
-          changePercent: q.regularMarketChangePercent,
+          name: q.shortName || q.name || q.symbol,
+          price: q.regularMarketPrice || q.price,
+          changePercent: q.regularMarketChangePercent || parseFloat(q.change) || 0,
           currency: q.currency,
           ...rec
         };
@@ -96,7 +98,7 @@ Analyze this real-time market data and provide BUY, SELL, or HOLD recommendation
 Market Data:
 ${JSON.stringify(stockSummaries, null, 2)}
 
-Respond ONLY with a JSON array of ${symbols.length} objects:
+Respond ONLY with a JSON array of ${stockSummaries.length} objects:
 [
   {
     "symbol": "AAPL",
@@ -115,12 +117,10 @@ Respond ONLY with a JSON array of ${symbols.length} objects:
       });
       
       const content = completion.choices[0]?.message?.content;
-      // Groq with json_object might return { "recommendations": [...] } or just the array
       const parsed = JSON.parse(content);
-      aiRecs = Array.isArray(parsed) ? parsed : parsed.recommendations;
+      aiRecs = Array.isArray(parsed) ? parsed : (parsed.recommendations || []);
       source = 'groq (llama-3.3)';
     } else if (genAI) {
-      // Gemini Fallback
       const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const prompt = `Analyze market data: ${JSON.stringify(stockSummaries)}. Return JSON array of recommendations.`;
       const result = await model.generateContent(prompt);
@@ -130,13 +130,16 @@ Respond ONLY with a JSON array of ${symbols.length} objects:
       source = 'gemini';
     }
 
-    const recommendations = aiRecs.map((rec, idx) => ({
-      ...rec,
-      price: stockSummaries[idx]?.price,
-      changePercent: stockSummaries[idx]?.changePercent,
-      currency: stockSummaries[idx]?.currency,
-      name: stockSummaries[idx]?.name || rec.symbol
-    }));
+    const recommendations = aiRecs.map((rec, idx) => {
+      const original = stockSummaries.find(s => s.symbol === rec.symbol) || stockSummaries[idx];
+      return {
+        ...rec,
+        price: original?.price,
+        changePercent: original?.changePercent,
+        currency: original?.currency,
+        name: original?.name || rec.symbol
+      };
+    });
 
     res.json({ recommendations, source });
 
@@ -157,9 +160,9 @@ Respond ONLY with a JSON array of ${symbols.length} objects:
         const rec = ruleBasedRecommendation(q);
         return { 
           symbol: q.symbol, 
-          name: q.shortName || q.symbol, 
-          price: q.regularMarketPrice, 
-          changePercent: q.regularMarketChangePercent, 
+          name: q.shortName || q.name || q.symbol, 
+          price: q.regularMarketPrice || q.price, 
+          changePercent: q.regularMarketChangePercent || parseFloat(q.change) || 0, 
           currency: q.currency,
           shortReason: rec.reasons[0] || 'Based on technical indicators',
           risk: q.sector === 'Crypto' ? 'High' : 'Medium',

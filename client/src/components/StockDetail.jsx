@@ -39,34 +39,55 @@ function fmtVolume(n) {
   return n;
 }
 
+/**
+ * StockDetail Overlay Component
+ * 
+ * Provides an in-depth view of a specific asset, including:
+ * - Real-time price and performance visualization (Chart.js)
+ * - Historical data modeling for various time periods
+ * - Comprehensive market metrics (Cap, PE, 52W High/Low)
+ * - Interactive Trading Desk for BUY and SELL orders
+ * - Portfolio integration via UserContext
+ */
 export default function StockDetail({ stock, onClose }) {
+  // --- Context & Navigation ---
   const { symbol, name } = stock;
   const { user, holdings, buyStock, sellStock } = useUser();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('6mo');
-  const [quantity, setQuantity] = useState(1);
-  const [orderType, setOrderType] = useState('Market');
-  const [limitPrice, setLimitPrice] = useState('');
-  const [activeTab, setActiveTab] = useState('BUY'); // BUY or SELL
-  const [status, setStatus] = useState({ success: false, message: '', type: '' });
+
+  // --- Data & Loading State ---
+  const [data, setData] = useState(null); // Detailed market and history data
+  const [loading, setLoading] = useState(true); // Fetching state
+  const [period, setPeriod] = useState('6mo'); // Active chart time range (1w, 1mo, etc.)
+
+  // --- Trading State ---
+  const [quantity, setQuantity] = useState(1); // Amount of shares to trade
+  const [orderType, setOrderType] = useState('Market'); // Market or Limit
+  const [limitPrice, setLimitPrice] = useState(''); // Specific price for limit orders
+  const [activeTab, setActiveTab] = useState('BUY'); // BUY or SELL mode toggle
+  const [status, setStatus] = useState({ success: false, message: '', type: '' }); // Transaction feedback
 
   // Get current holding for this symbol
   const currentHolding = useMemo(() => holdings.find(h => h.symbol === symbol), [holdings, symbol]);
 
+  /**
+   * History Simulation Effect
+   * 
+   * Fetches/Simulates historical price points and detailed metrics 
+   * whenever the selected period or symbol changes.
+   */
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        // Mocking history generation
-        await new Promise(resolve => setTimeout(resolve, 600)); // Simulate network
+        // Simulation of network request
+        await new Promise(resolve => setTimeout(resolve, 600)); 
         const points = period === '1w' ? 7 : period === '1mo' ? 30 : period === '3mo' ? 90 : period === '6mo' ? 180 : period === '1y' ? 365 : 1825;
         const currentPrice = stock.price || 150;
         let volatility = stock.sector === 'Crypto' ? 0.05 : 0.02;
         let history = [];
         let price = currentPrice;
         
-        // Work backwards from current price
+        // Algorithmic random walk to generate historical trend
         for (let i = points; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
@@ -74,7 +95,6 @@ export default function StockDetail({ stock, onClose }) {
             date: date.toISOString().split('T')[0],
             close: price
           });
-          // Add some random walk for previous day
           price = price / (1 + (Math.random() * volatility * 2 - volatility));
         }
 
@@ -100,7 +120,7 @@ export default function StockDetail({ stock, onClose }) {
           history: history
         });
       } catch (err) {
-        console.error(err);
+        console.error("❌ History Load Error:", err);
       } finally {
         setLoading(false);
       }
@@ -158,6 +178,12 @@ export default function StockDetail({ stock, onClose }) {
     }
   };
 
+  /**
+   * Order Execution Logic
+   * 
+   * Processes the BUY or SELL request through the UserContext
+   * providing instant feedback to the user.
+   */
   const handleTransaction = () => {
     const currentPrice = data?.price || stock.price;
     
@@ -187,6 +213,7 @@ export default function StockDetail({ stock, onClose }) {
       type: activeTab
     });
     
+    // Auto-dismiss feedback message after success
     if (result.success) {
       setTimeout(() => {
           setStatus({ success: false, message: '', type: '' });

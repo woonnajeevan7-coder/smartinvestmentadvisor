@@ -28,19 +28,34 @@ import {
 } from 'lucide-react';
 import { useUser } from "../context/UserContext";
 
+/**
+ * Profile Page Component
+ * 
+ * Provides a comprehensive view of the user's investment profile, including:
+ * - Identity and account information
+ * - Financial health scoring
+ * - Risk tolerance configuration
+ * - Portfolio preferences and settings
+ * - Navigation hub to other system components
+ */
 export default function Profile() {
+  // --- Context & Navigation ---
   const { user, holdings, transactions, setUser } = useUser();
   const navigate = useNavigate();
 
-  // Local edit states
-  const [editing, setEditing] = useState(false);
+  // --- State Management ---
+  const [editing, setEditing] = useState(false); // Controls edit mode for account parameters
   const [formData, setFormData] = useState({
     name: user?.name || "Guest User",
     email: user?.email || "user@example.com",
     risk: user?.riskScore || 5
   });
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(false); // Controls success feedback animation
 
+  /**
+   * Tracks if the form data has changed from the original user data
+   * Used to enable/disable the save button
+   */
   const isChanged = useMemo(() => {
     return (
       formData.name !== (user?.name || "Guest User") ||
@@ -80,14 +95,22 @@ export default function Profile() {
     twoFactor: false
   });
 
-  // 1. Investor Type & Category Logic
+  // --- Derived Data & Analytics ---
+
+  /**
+   * Categorizes the investor based on their risk score (1-10)
+   * Defines UI colors and labels for branding consistency
+   */
   const investorType = useMemo(() => {
     if (formData.risk <= 3) return { type: "Conservative", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
     if (formData.risk <= 7) return { type: "Balanced", color: "text-neu-accent", bg: "bg-blue-500/10", border: "border-blue-500/20" };
     return { type: "Aggressive", color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" };
   }, [formData.risk]);
 
-  // 2. Financial Health Score (Mock Calculation)
+  /**
+   * Calculates a mock Financial Health Score based on user metrics
+   * (Balance, Diversification, Transaction Frequency)
+   */
   const healthScore = useMemo(() => {
     let score = 5;
     const balance = user?.balance || 0;
@@ -107,15 +130,21 @@ export default function Profile() {
     return "Balanced Growth Seeker: You maintain a healthy mix of growth and stability in your portfolio.";
   }, [formData.risk]);
 
+  /**
+   * Aggregates account-wide statistics for the Account Hub section
+   */
   const stats = useMemo(() => {
     const totalInvested = (holdings || []).reduce((acc, h) => acc + (h.avgPrice * h.quantity), 0);
     return {
       totalInvested,
       totalTrades: (transactions || []).length,
-      avgReturn: "+12.4%" // Mocked for UI
+      avgReturn: "+12.4%" // Mocked for UI demonstration
     };
   }, [holdings, transactions]);
 
+  /**
+   * Saves updated profile parameters to the global UserContext
+   */
   const handleSave = () => {
     setUser(prev => ({
       ...prev,
@@ -126,7 +155,7 @@ export default function Profile() {
     }));
     setSaved(true);
     setEditing(false);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2000); // Auto-dismiss success message
   };
 
   return (

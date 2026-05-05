@@ -12,14 +12,37 @@ import {
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Dashboard Page Component
+ * 
+ * The main strategic hub of the application, featuring:
+ * - Real-time Portfolio Health and Net Worth stats
+ * - AI-driven 6-month financial forecasting
+ * - Interactive Performance Modeling charts
+ * - Strategic AI rebalancing suggestions and system alerts
+ * - Comprehensive Portfolio Ledger and Transaction History
+ */
 export default function Dashboard() {
+  // --- Context & Navigation ---
   const { user, holdings, transactions, balanceHistory, watchlist } = useUser();
   const { marketData } = useMarket();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('Overview');
-  const [scenario, setScenario] = useState('Normal');
+  // --- UI State ---
+  const [activeTab, setActiveTab] = useState('Overview'); // Controls main section tabs
+  const [scenario, setScenario] = useState('Normal'); // Controls market scenario for modeling (Bear/Normal/Bull)
 
+  /**
+   * AI Analytics Engine (useMemo)
+   * 
+   * Calculates all high-level financial metrics, including:
+   * - Current Portfolio Value based on live market data
+   * - ROI and Profit/Loss aggregation
+   * - Health Score (diversification and risk audit)
+   * - Asset Concentration warnings
+   * - Predictive Forecasts based on market scenarios
+   * - Strategic Rebalancing steps
+   */
   const aiAnalytics = useMemo(() => {
     const safeHoldings = holdings || [];
     const safeMarket = marketData || [];
@@ -77,6 +100,12 @@ export default function Dashboard() {
   }, [holdings, user, marketData, scenario]);
 
   const chartLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /**
+   * Performance Chart Simulation
+   * 
+   * Generates chart data points by applying scenario multipliers 
+   * to historical or base balance history.
+   */
   const simulatedChartData = useMemo(() => {
     const base = (balanceHistory && balanceHistory.length > 5)
       ? balanceHistory

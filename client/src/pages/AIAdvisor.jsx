@@ -73,6 +73,10 @@ const ConfBar = React.memo(({ value, signal }) => {
   );
 });
 
+/**
+ * RecCard Sub-component
+ * Displays detailed AI recommendation for an asset with expansion for reasoning.
+ */
 const RecCard = React.memo(({ rec }) => {
   const [open, setOpen] = useState(false);
   const isPositive = (rec?.changePercent || 0) >= 0;
@@ -212,19 +216,27 @@ const SUGGESTED = [
   'Explain P/E ratio in simple terms'
 ];
 
+/**
+ * AI Advisor Page Component
+ * 
+ * A sophisticated dual-mode intelligence interface:
+ * 1. Market Signals: Provides AI-driven BUY/SELL/HOLD recommendations with confidence levels.
+ * 2. Advisor AI Chat: An interactive conversational interface for deep financial analysis.
+ */
 export default function AIAdvisor() {
-  const [tab, setTab] = useState('signals');
+  // --- Global State & Context ---
+  const [tab, setTab] = useState('signals'); // Active view (signals or chat)
   const { marketData } = useMarket();
 
-  // Signals state
-  const [recs, setRecs] = useState([]);
-  const [recsLoading, setRecsLoading] = useState(false);
-  const [recsError, setRecsError] = useState('');
-  const [recSource, setRecSource] = useState('');
-  const [filterSig, setFilterSig] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStocks, setSelectedStocks] = useState([]);
-  const [showStockSelector, setShowStockSelector] = useState(false);
+  // --- Market Signals State ---
+  const [recs, setRecs] = useState([]); // List of AI recommendations
+  const [recsLoading, setRecsLoading] = useState(false); // Fetching state
+  const [recsError, setRecsError] = useState(''); // Error feedback
+  const [recSource, setRecSource] = useState(''); // Source model identifier (Groq, Gemini, etc.)
+  const [filterSig, setFilterSig] = useState('All'); // Signal filter (BUY/SELL/HOLD)
+  const [searchQuery, setSearchQuery] = useState(''); // Search text
+  const [selectedStocks, setSelectedStocks] = useState([]); // Targeted analysis selection
+  const [showStockSelector, setShowStockSelector] = useState(false); // Stock picker visibility
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -233,7 +245,7 @@ export default function AIAdvisor() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  // Chat state
+  // --- AI Chat State ---
   const [messages, setMessages] = useState([
     {
       role: 'ai',
@@ -241,13 +253,13 @@ export default function AIAdvisor() {
       content: `👋 Hi! I'm **Fund Cr**, your personal investment analyst powered by **Groq**.\n\nI can help you with:\n- 📈 Which stocks to **buy or sell**\n- 💼 Building a smart **portfolio**\n- ₿ **Crypto** analysis\n- ⚖️ **Risk management** strategies\n- 📊 Explaining any **financial concept**\n\nWhat would you like to know today?`
     }
   ]);
-  const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
-  const [sessionId] = useState(() => Math.random().toString(36).slice(2));
+  const [input, setInput] = useState(''); // Current chat input
+  const [typing, setTyping] = useState(false); // AI response generation state
+  const [sessionId] = useState(() => Math.random().toString(36).slice(2)); // Session persistence key
   
-  const chatBottomRef = useRef(null);
-  const isFetching = useRef(false);
-  const lastFetchTime = useRef(0);
+  const chatBottomRef = useRef(null); // Ref for auto-scrolling
+  const isFetching = useRef(false); // Throttle guard for API calls
+  const lastFetchTime = useRef(0); // Cooldown timer for sync operations
 
   // Load recommendations
   const loadRecs = useCallback(async (manual = false) => {

@@ -81,6 +81,10 @@ const SkeletonCard = () => (
   </div>
 );
 
+/**
+ * MarketCard Sub-component
+ * Renders an individual asset's price, change, and performance visual.
+ */
 const MarketCard = React.memo(({ item, isWatched, onToggleWatch, onClick }) => {
   const isPositive = item?.isPositive ?? (parseFloat(item?.change) >= 0);
   
@@ -186,13 +190,25 @@ const FilterBar = React.memo(({ search, setSearch, category, setCategory, catego
 
 // --- Main Component ---
 
+/**
+ * Market Terminal Component
+ * 
+ * Provides a real-time market overview including:
+ * - Search and filtering of global assets
+ * - Live price tracking and performance sparklines
+ * - Watchlist management (Persistence via UserContext)
+ * - Detailed asset analysis via StockDetail overlay
+ */
 export default function Market() {
+  // --- Context Hooks ---
   const { marketData, loading, fetchMarketData } = useMarket();
   const { watchlist, toggleWatchlist } = useUser();
-  const [category, setCategory] = useState('All Markets');
-  const [search, setSearch] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
+
+  // --- UI & Filter State ---
+  const [category, setCategory] = useState('All Markets'); // Active market category
+  const [search, setSearch] = useState(''); // Current search query
+  const [refreshing, setRefreshing] = useState(false); // Loading state for manual sync
+  const [selectedStock, setSelectedStock] = useState(null); // Active stock for detailed view overlay
   
   // Throttle/Overlap Guard
   const lastFetchTime = useRef(0);
