@@ -55,7 +55,11 @@ export function UserProvider({ children }) {
 
           // Sync holdings and history
           const dbHoldings = await fetchHoldings();
-          setHoldings(dbHoldings || []);
+          const mappedHoldings = (dbHoldings || []).map(h => ({
+            ...h,
+            avgPrice: h.avgPrice !== undefined ? h.avgPrice : (h.avg_price !== undefined ? h.avg_price : 0)
+          }));
+          setHoldings(mappedHoldings);
 
           const dbHistory = await fetchHistory();
           setTransactions(dbHistory || []);
@@ -100,7 +104,11 @@ export function UserProvider({ children }) {
       }));
 
       const dbHoldings = await fetchHoldings();
-      setHoldings(dbHoldings || []);
+      const mappedHoldings = (dbHoldings || []).map(h => ({
+        ...h,
+        avgPrice: h.avgPrice !== undefined ? h.avgPrice : (h.avg_price !== undefined ? h.avg_price : 0)
+      }));
+      setHoldings(mappedHoldings);
 
       const dbHistory = await fetchHistory();
       setTransactions(dbHistory || []);
@@ -227,7 +235,11 @@ export function UserProvider({ children }) {
         });
 
         const dbHoldings = await fetchHoldings();
-        setHoldings(dbHoldings || []);
+        const mappedHoldings = (dbHoldings || []).map(h => ({
+          ...h,
+          avgPrice: h.avgPrice !== undefined ? h.avgPrice : (h.avg_price !== undefined ? h.avg_price : 0)
+        }));
+        setHoldings(mappedHoldings);
 
         const dbHistory = await fetchHistory();
         setTransactions(dbHistory || []);

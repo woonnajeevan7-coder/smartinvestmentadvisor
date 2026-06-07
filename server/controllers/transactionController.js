@@ -22,7 +22,10 @@ export const getHoldings = async (req, res, next) => {
   const userId = req.user.id; // Resolving directly from the verified JWT token
 
   try {
-    const [rows] = await db.promise().query("SELECT * FROM HOLDINGS WHERE user_id = ?", [userId]);
+    const [rows] = await db.promise().query(
+      "SELECT id, user_id, symbol, name, quantity, avg_price AS avgPrice, last_updated FROM HOLDINGS WHERE user_id = ?", 
+      [userId]
+    );
     res.json(rows);
   } catch (err) {
     next(err);
