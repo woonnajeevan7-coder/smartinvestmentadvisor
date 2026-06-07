@@ -163,9 +163,7 @@ Respond ONLY with a JSON array of ${stockSummaries.length} objects:
       };
     });
 
-    res.json({ recommendations, source });
-
-  } catch (err) {
+    res.json({ recommendations, source });  } catch (err) {
     console.warn('⚠️ AI Recommendation Error (switching to technical fallback):', err.message);
     
     // Immediate Fallback to local rule-based engine
@@ -174,8 +172,24 @@ Respond ONLY with a JSON array of ${stockSummaries.length} objects:
       let quotesToAnalyze = currentMarketData;
       
       if (!quotesToAnalyze) {
-        const fallbackSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS'];
-        quotesToAnalyze = await yahooFinance.quote(fallbackSymbols);
+        try {
+          const fallbackSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS'];
+          quotesToAnalyze = await yahooFinance.quote(fallbackSymbols);
+        } catch (apiErr) {
+          console.warn("⚠️ Yahoo Finance fallback API also failed, using static fallback database.");
+          quotesToAnalyze = [
+            { symbol: 'AAPL', shortName: 'Apple Inc.', regularMarketPrice: 175.50, regularMarketChangePercent: 1.10, currency: 'USD', sector: 'Technology' },
+            { symbol: 'MSFT', shortName: 'Microsoft Corp.', regularMarketPrice: 420.10, regularMarketChangePercent: 0.85, currency: 'USD', sector: 'Technology' },
+            { symbol: 'GOOGL', shortName: 'Alphabet Inc.', regularMarketPrice: 155.60, regularMarketChangePercent: 0.30, currency: 'USD', sector: 'Technology' },
+            { symbol: 'AMZN', shortName: 'Amazon.com Inc.', regularMarketPrice: 185.30, regularMarketChangePercent: 0.50, currency: 'USD', sector: 'Consumer Cyclical' },
+            { symbol: 'NVDA', shortName: 'NVIDIA Corp.', regularMarketPrice: 890.00, regularMarketChangePercent: 3.50, currency: 'USD', sector: 'Technology' },
+            { symbol: 'TSLA', shortName: 'Tesla Inc.', regularMarketPrice: 170.20, regularMarketChangePercent: -2.10, currency: 'USD', sector: 'Automotive' },
+            { symbol: 'META', shortName: 'Meta Platforms Inc.', regularMarketPrice: 480.00, regularMarketChangePercent: -1.20, currency: 'USD', sector: 'Technology' },
+            { symbol: 'BTC-USD', shortName: 'Bitcoin', regularMarketPrice: 65000, regularMarketChangePercent: -0.50, currency: 'USD', sector: 'Crypto' },
+            { symbol: 'ETH-USD', shortName: 'Ethereum', regularMarketPrice: 3450.00, regularMarketChangePercent: 1.20, currency: 'USD', sector: 'Crypto' },
+            { symbol: 'RELIANCE.NS', shortName: 'Reliance Industries', regularMarketPrice: 2900, regularMarketChangePercent: 2.10, currency: 'INR', sector: 'Indian Markets' }
+          ];
+        }
       }
 
       const recommendations = (quotesToAnalyze || []).map(q => {
