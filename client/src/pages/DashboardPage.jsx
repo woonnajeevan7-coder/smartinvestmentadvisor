@@ -372,11 +372,11 @@ export default function Dashboard() {
                       >
                         <td className="py-6 font-black text-neu-primary font-jakarta uppercase">{h.symbol}</td>
                         <td className="py-6 font-bold text-neu-muted font-dm-sans">{h.quantity}</td>
-                        <td className="py-6 text-right font-bold text-neu-muted font-dm-sans">${h.avgPrice.toFixed(2)}</td>
-                        <td className="py-6 text-right font-black text-neu-primary font-jakarta">${curPrice.toFixed(2)}</td>
+                        <td className="py-6 text-right font-bold text-neu-muted font-dm-sans">${(Number(h.avgPrice) || 0).toFixed(2)}</td>
+                        <td className="py-6 text-right font-black text-neu-primary font-jakarta">${(Number(curPrice) || 0).toFixed(2)}</td>
                         <td className="py-6 text-right">
-                          <span className={`px-4 py-1.5 rounded-xl font-black text-[10px] ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+                          <span className={`px-4 py-1.5 rounded-xl font-black text-[10px] ${(change || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {(change || 0) >= 0 ? '+' : ''}{(change || 0).toFixed(1)}%
                           </span>
                         </td>
                       </tr>
