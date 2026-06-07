@@ -15,6 +15,7 @@ app.use(helmet());
 
 // 2. Configure Cross-Origin Resource Sharing (CORS) securely
 const allowedOrigins = [
+  "https://smartinvestmentadvisor.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
@@ -23,29 +24,18 @@ const allowedOrigins = [
   "http://127.0.0.1:5173"
 ];
 
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow local requests without origin (curl, server-to-server, unit tests)
+    origin: function (origin, callback) {
       if (!origin) return callback(null, true);
 
-      // Support common local development ports dynamically
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:")
-      ) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error("Not allowed by CORS policy"));
+
+      return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    credentials: true
   })
 );
 
