@@ -48,8 +48,9 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
           
-          <Route path="/" element={<ProtectedRoute><InputForm /></ProtectedRoute>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/input" element={<ProtectedRoute><InputForm /></ProtectedRoute>} />
           <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />

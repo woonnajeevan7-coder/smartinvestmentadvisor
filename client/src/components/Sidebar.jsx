@@ -17,7 +17,7 @@ const Sidebar = () => {
 
   const links = [
     { name: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
-    { name: 'Input Form', path: '/', icon: 'Activity' },
+    { name: 'Input Form', path: '/input', icon: 'Activity' },
     { name: 'Simulator', path: '/simulator', icon: 'LineChart' },
     { name: 'History', path: '/history', icon: 'History' },
     { name: 'Market', path: '/market', icon: 'TrendingUp' },

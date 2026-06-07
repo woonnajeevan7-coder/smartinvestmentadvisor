@@ -391,7 +391,7 @@ export default function Profile() {
                 { name: 'Audit History', path: '/history', icon: <HistoryIcon size={16} />, color: 'bg-purple-500/10 text-purple-400' },
                 { name: 'AI Advisor', path: '/ai', icon: <User size={16} />, color: 'bg-indigo-500/10 text-indigo-400' },
                 { name: 'Simulator', path: '/simulator', icon: <Activity size={16} />, color: 'bg-orange-500/10 text-orange-400' },
-                { name: 'Trade Desk', path: '/', icon: <Wallet size={16} />, color: 'bg-slate-800 text-neu-primary font-jakarta' }
+                { name: 'Trade Desk', path: '/input', icon: <Wallet size={16} />, color: 'bg-slate-800 text-neu-primary font-jakarta' }
               ].map(link => (
                 <button
                   key={link.name}
