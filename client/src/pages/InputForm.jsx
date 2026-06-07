@@ -25,7 +25,7 @@ import {
 
 export default function InputForm() {
   const navigate = useNavigate();
-  const { updateRiskProfile, setUser } = useUser();
+  const { updateRiskProfile, setUser, user } = useUser();
 
   const [form, setForm] = useState({
     age: "25",
@@ -89,7 +89,11 @@ export default function InputForm() {
     if (!isValid) return;
     setLoading(true);
     try {
-      const data = await analyzeUser(form);
+      const data = await analyzeUser({
+        ...form,
+        email: user?.email,
+        name: user?.name
+      });
       updateRiskProfile(data.score, data.category);
       setUser(prev => ({ ...prev, goalAmount: Number(form.goalAmount) }));
       setTimeout(() => navigate("/dashboard"), 1000);

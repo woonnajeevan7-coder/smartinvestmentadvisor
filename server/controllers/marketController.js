@@ -3,9 +3,24 @@ import yahooFinanceModule from 'yahoo-finance2';
 const YahooFinance = yahooFinanceModule.default || yahooFinanceModule;
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
+const ALLOWED_PERIODS = ['1w', '1mo', '3mo', '6mo', '1y', '5y'];
+
 export const getStockHistory = async (req, res) => {
   const { symbol } = req.params;
   const { period = '6mo' } = req.query;
+
+  // Validation
+  if (!symbol || typeof symbol !== 'string' || symbol.trim().length === 0 || symbol.length > 20) {
+    return res.status(400).json({ error: "Invalid ticker symbol provided" });
+  }
+
+  const cleanedSymbol = symbol.trim().toUpperCase();
+
+  if (!ALLOWED_PERIODS.includes(period)) {
+    return res.status(400).json({ 
+      error: `Invalid period. Allowed values: ${ALLOWED_PERIODS.join(', ')}` 
+    });
+  }
 
   // Map period to date range
   const now = new Date();
@@ -19,30 +34,38 @@ export const getStockHistory = async (req, res) => {
 
   try {
     const [history, quote] = await Promise.all([
-      yahooFinance.historical(symbol, { period1: from, period2: now, interval: period === '1w' ? '1d' : '1wk' }),
-      yahooFinance.quote(symbol)
+      yahooFinance.historical(cleanedSymbol, { 
+        period1: from, 
+        period2: now, 
+        interval: period === '1w' ? '1d' : '1wk' 
+      }),
+      yahooFinance.quote(cleanedSymbol)
     ]);
 
+    if (!quote) {
+      return res.status(404).json({ error: `Market quote for symbol ${cleanedSymbol} not found` });
+    }
+
     res.json({
-      symbol,
-      name: quote.shortName || quote.longName || symbol,
-      price: quote.regularMarketPrice,
-      change: quote.regularMarketChange,
-      changePercent: quote.regularMarketChangePercent,
-      open: quote.regularMarketOpen,
-      high: quote.regularMarketDayHigh,
-      low: quote.regularMarketDayLow,
-      volume: quote.regularMarketVolume,
-      marketCap: quote.marketCap,
-      pe: quote.trailingPE,
-      currency: quote.currency,
-      fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
-      fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
-      history: history.map(h => ({ date: h.date, close: h.close }))
+      symbol: cleanedSymbol,
+      name: quote.shortName || quote.longName || cleanedSymbol,
+      price: quote.regularMarketPrice || 0,
+      change: quote.regularMarketChange || 0,
+      changePercent: quote.regularMarketChangePercent || 0,
+      open: quote.regularMarketOpen || 0,
+      high: quote.regularMarketDayHigh || 0,
+      low: quote.regularMarketDayLow || 0,
+      volume: quote.regularMarketVolume || 0,
+      marketCap: quote.marketCap || 0,
+      pe: quote.trailingPE || null,
+      currency: quote.currency || 'USD',
+      fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || quote.regularMarketPrice || 0,
+      fiftyTwoWeekLow: quote.fiftyTwoWeekLow || quote.regularMarketPrice || 0,
+      history: (history || []).map(h => ({ date: h.date, close: h.close }))
     });
   } catch (err) {
-    console.error('History fetch error:', err);
-    res.status(500).json({ error: 'Failed to fetch historical data' });
+    console.error(`❌ History fetch error for ${cleanedSymbol}:`, err.message);
+    res.status(500).json({ error: `Failed to fetch historical market data for ${cleanedSymbol}` });
   }
 };
 
@@ -57,7 +80,7 @@ export const getCachedMarketData = async () => {
   if (marketCache.data && (Date.now() - marketCache.timestamp < CACHE_DURATION)) {
     return marketCache.data;
   }
-  return null; // Signals we need a fresh fetch or the caller can handle fallback
+  return null;
 };
 
 export const getMarketData = async (req, res) => {
@@ -104,10 +127,10 @@ export const getMarketData = async (req, res) => {
       else if (q.symbol.includes('-USD')) category = 'Crypto';
 
       return {
-        symbol: q.symbol.replace('-USD', ''), // Strip -USD for consistency with frontend
+        symbol: q.symbol.replace('-USD', ''), 
         name: q.shortName || q.longName || q.symbol,
-        price: q.regularMarketPrice,
-        currency: q.currency,
+        price: q.regularMarketPrice || 0,
+        currency: q.currency || 'USD',
         change: changeStr,
         isPositive,
         sector,

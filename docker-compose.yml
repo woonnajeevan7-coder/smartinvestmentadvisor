@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Database Service
+  mysql-db:
+    image: mysql:8.0
+    container_name: advisor-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: smartinvestmentadvisor
+      MYSQL_ROOT_PASSWORD: Bhavan_DB_Password_Prod_99
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Express Backend Service
+  backend:
+    build: ./server
+    container_name: advisor-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=Bhavan_DB_Password_Prod_99
+      - DB_NAME=smartinvestmentadvisor
+      - PORT=5001
+      - JWT_SECRET=2d1f9a1fbe7b38c2901a1c4b785d1e263d98c25f6e80adcf879e623cdbe2f74e
+      - JWT_EXPIRY=24h
+      - GEMINI_API_KEY=your_gemini_api_key
+      - GROQ_API_KEY=your_groq_api_key
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  # React Frontend Service
+  frontend:
+    build: ./client
+    container_name: advisor-frontend
+    restart: always
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:5001/api
+    depends_on:
+      - backend
+
+volumes:
+  db-data:

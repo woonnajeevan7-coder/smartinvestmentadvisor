@@ -22,7 +22,7 @@ const Sidebar = () => {
     { name: 'History', path: '/history', icon: 'History' },
     { name: 'Market', path: '/market', icon: 'TrendingUp' },
     { name: 'Banking', path: '/banking', icon: 'Wallet' },
-    { name: 'AI Advisor', path: '/ai', icon: 'Brain' },
+    { name: 'AI Smart Signals', path: '/ai', icon: 'Brain' },
     { name: 'Profile', path: '/profile', icon: 'Settings' },
   ];
 

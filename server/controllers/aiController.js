@@ -11,39 +11,62 @@ const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_
 
 // ---------- Smart Rule-Based Fallback ----------
 function ruleBasedRecommendation(quote) {
-  const changePercent = quote.regularMarketChangePercent || 0;
-  const price = quote.regularMarketPrice || 0;
-  const fiftyTwoWeekHigh = quote.fiftyTwoWeekHigh || price;
-  const fiftyTwoWeekLow = quote.fiftyTwoWeekLow || price;
+  const symbol = quote.symbol || '';
+  const changePercent = quote.regularMarketChangePercent || parseFloat(quote.change) || 0;
+  const price = quote.regularMarketPrice || quote.price || 0;
+  const fiftyTwoWeekHigh = quote.fiftyTwoWeekHigh || price * 1.1;
+  const fiftyTwoWeekLow = quote.fiftyTwoWeekLow || price * 0.9;
   const pe = quote.trailingPE;
+  
   const distFromHigh = ((fiftyTwoWeekHigh - price) / fiftyTwoWeekHigh) * 100;
   const distFromLow = ((price - fiftyTwoWeekLow) / fiftyTwoWeekLow) * 100;
 
   let signal = 'HOLD';
-  let confidence = 50;
+  let confidence = 50 + (Math.abs(changePercent) * 2);
   let reasons = [];
 
-  if (changePercent > 2) { reasons.push(`Strong momentum: +${changePercent.toFixed(2)}% today`); }
-  if (changePercent < -3) { reasons.push(`Selling pressure: ${changePercent.toFixed(2)}% today`); }
-  if (distFromLow < 10) { reasons.push('Near 52-week low — potential value buy'); confidence += 20; }
-  if (distFromHigh < 5) { reasons.push('Near 52-week high — consider taking profits'); confidence += 10; }
-  if (pe && pe < 20) { reasons.push(`Attractive P/E of ${pe.toFixed(1)}`); confidence += 15; }
-  if (pe && pe > 50) { reasons.push(`High P/E of ${pe.toFixed(1)} — overvalued risk`); confidence += 10; }
-
-  if (distFromLow < 15 && (pe == null || pe < 30) && changePercent > -1) {
+  // Logic for BUY
+  if (distFromLow < 15) {
     signal = 'BUY';
-    confidence = Math.min(90, 60 + (15 - distFromLow));
-  } else if (distFromHigh < 5 || changePercent < -4 || (pe && pe > 60)) {
-    signal = 'SELL';
-    confidence = Math.min(85, 55 + Math.abs(changePercent) * 3);
-  } else {
-    signal = 'HOLD';
-    confidence = 55;
+    confidence = 70 + (15 - distFromLow);
+    reasons.push('Trading near 52-week support levels.');
+  } else if (changePercent > 1.5) {
+    signal = 'BUY';
+    confidence = 65 + (changePercent * 2);
+    reasons.push(`Strong intraday momentum: +${changePercent.toFixed(2)}%`);
+  } else if (pe && pe < 18) {
+    signal = 'BUY';
+    confidence = 60 + (18 - pe);
+    reasons.push(`Undervalued with P/E of ${pe.toFixed(1)}`);
   }
 
-  if (reasons.length === 0) reasons.push('No strong signals — market is neutral');
+  // Logic for SELL
+  if (distFromHigh < 5 && signal !== 'BUY') {
+    signal = 'SELL';
+    confidence = 75 + (5 - distFromHigh);
+    reasons.push('Resistance near 52-week high reached.');
+  } else if (changePercent < -2.5) {
+    signal = 'SELL';
+    confidence = 70 + Math.abs(changePercent);
+    reasons.push(`Significant downward pressure: ${changePercent.toFixed(2)}%`);
+  } else if (pe && pe > 45 && signal !== 'BUY') {
+    signal = 'SELL';
+    confidence = 65 + (pe / 10);
+    reasons.push(`High valuation risk (P/E: ${pe.toFixed(1)})`);
+  }
 
-  return { signal, confidence: Math.round(confidence), reasons };
+  // Final check for HOLD if nothing triggered or confidence is too low
+  if (reasons.length === 0 || (changePercent > -0.5 && changePercent < 0.5)) {
+    signal = 'HOLD';
+    confidence = 50 + Math.random() * 10;
+    reasons = ['Market consolidation — wait for clear breakout.'];
+  }
+
+  return { 
+    signal, 
+    confidence: Math.min(95, Math.round(confidence)), 
+    reasons: reasons.length > 0 ? reasons : ['Neutral market sentiment.']
+  };
 }
 
 // ---------- GET STOCK RECOMMENDATIONS ----------
@@ -52,13 +75,12 @@ export const getRecommendations = async (req, res) => {
     const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS', 'TCS.NS', 'INFY.NS'];
     let quotes = await getCachedMarketData();
     
-    // If cache is simplified data, we might need raw quotes for the rule-based engine or AI
-    // However, let's try to use what we have or fetch if missing
+    // If cache is empty, fetch fresh quotes
     if (!quotes) {
       quotes = await yahooFinance.quote(symbols);
     }
 
-    const stockSummaries = quotes.map(q => ({
+    const stockSummaries = (quotes || []).map(q => ({
       symbol: q.symbol,
       name: q.shortName || q.name || q.symbol,
       price: q.regularMarketPrice || q.price,
@@ -71,8 +93,8 @@ export const getRecommendations = async (req, res) => {
     }));
 
     if (!groq && !genAI) {
-      // Rule-based fallback if no AI is available
-      const recommendations = quotes.map(q => {
+      // Rule-based fallback if no AI is configured
+      const recommendations = (quotes || []).map(q => {
         const rec = ruleBasedRecommendation(q);
         return {
           symbol: q.symbol,
@@ -86,7 +108,7 @@ export const getRecommendations = async (req, res) => {
       return res.json({ recommendations, source: 'rule-based' });
     }
 
-    // AI Analysis (Prioritize Groq for speed/quota)
+    // AI Analysis
     let aiRecs = [];
     let source = 'rule-based';
 
@@ -144,9 +166,9 @@ Respond ONLY with a JSON array of ${stockSummaries.length} objects:
     res.json({ recommendations, source });
 
   } catch (err) {
-    console.error('❌ AI Recommendation Error:', err.message);
+    console.warn('⚠️ AI Recommendation Error (switching to technical fallback):', err.message);
     
-    // Immediate Fallback to rule-based engine
+    // Immediate Fallback to local rule-based engine
     try {
       const currentMarketData = await getCachedMarketData();
       let quotesToAnalyze = currentMarketData;
@@ -177,7 +199,7 @@ Respond ONLY with a JSON array of ${stockSummaries.length} objects:
       });
     } catch (fallbackErr) {
       console.error('❌ Critical Fallback Error:', fallbackErr.message);
-      return res.status(500).json({ error: 'Failed to generate recommendations' });
+      return res.status(500).json({ error: 'Failed to generate asset recommendations' });
     }
   }
 };
@@ -187,19 +209,24 @@ const chatSessions = new Map(); // sessionId -> history
 
 export const chatWithAI = async (req, res) => {
   const { message, sessionId } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message required' });
 
-  const sid = sessionId || 'default';
+  // Validation
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'A valid non-empty chat message is required' });
+  }
+
+  const cleanedMessage = message.trim();
+  const sid = (sessionId && typeof sessionId === 'string') ? sessionId.trim() : 'default';
 
   try {
-    // 1. Get cached market data for context (MUCH FASTER than fresh fetch)
+    // 1. Get cached market data for context
     let contextData = await getCachedMarketData();
     
     // If cache is empty, do a limited quick fetch
     if (!contextData) {
       const symbols = ['AAPL', 'MSFT', 'BTC-USD', 'ETH-USD', 'RELIANCE.NS'];
       const quotes = await yahooFinance.quote(symbols);
-      contextData = quotes.map(q => ({
+      contextData = (quotes || []).map(q => ({
         symbol: q.symbol,
         name: q.shortName || q.symbol,
         price: q.regularMarketPrice,
@@ -209,12 +236,12 @@ export const chatWithAI = async (req, res) => {
 
     if (!groq && !genAI) {
       // Rule-based chatbot fallback
-      const msg = message.toLowerCase();
+      const msg = cleanedMessage.toLowerCase();
       let reply = '';
       if (msg.includes('buy') && msg.includes('stock')) {
         reply = `📊 **Stock Buying Strategy**\n\nHere's my framework for buying stocks:\n\n1. **Value Criteria** — Look for stocks trading within 15% of their 52-week low with a P/E below 25.\n2. **Momentum** — Positive daily change (+1% to +3%) with above-average volume is a healthy signal.\n3. **Fundamentals** — Strong companies like Apple, Microsoft, and Reliance tend to recover from dips.\n4. **Diversify** — Never put more than 10% of your capital in a single stock.\n\n*Current picks based on rule-based signals:* Check the "Smart Signals" tab for live BUY recommendations!`;
       } else if (msg.includes('sell')) {
-        reply = `📉 **When to Sell**\n\nSell signals I watch:\n\n1. Stock is within 3-5% of its 52-week high — consider taking profits\n2. P/E ratio exceeds 60 — potential overvaluation\n3. Sustained daily losses > 3% for multiple days\n4. Better opportunity found elsewhere\n\n*Rule of thumb:* Set a stop-loss at 7-8% below your buy price to limit downside.`;
+        reply = `📉 **When to Sell**\n\nSell signals I watch:\n\n1. Stock is within 3-5% of its 52-week high — consider taking profits\n2. P/E ratio exceeds 60 — potential overvaluation\n3. Daily losses > 3% for multiple days\n4. Better opportunity found elsewhere\n\n*Rule of thumb:* Set a stop-loss at 7-8% below your buy price to limit downside.`;
       } else if (msg.includes('crypto') || msg.includes('bitcoin') || msg.includes('btc')) {
         reply = `₿ **Crypto Insights**\n\nCrypto is a high-risk, high-reward asset class:\n\n- **Bitcoin (BTC)** — Digital gold, best for long-term hold\n- **Ethereum (ETH)** — Smart contract platform, strong fundamentals\n- **Solana (SOL)** — High-speed transactions, growing ecosystem\n\n⚠️ Never invest more than 5-15% of your portfolio in crypto. It's volatile!`;
       } else if (msg.includes('portfolio') || msg.includes('invest')) {
@@ -230,7 +257,6 @@ export const chatWithAI = async (req, res) => {
     let reply = '';
     
     if (groq) {
-      // Groq Chat with deep platform awareness
       const completion = await groq.chat.completions.create({
         messages: [
           {
@@ -274,13 +300,12 @@ ${JSON.stringify(contextData)}
 4. **Markdown Mastery**: Use tables, bold text, and bullet points.
 5. **Tone**: Senior Investment Partner. Professional, educational, and authoritative.`
           },
-          { role: 'user', content: message }
+          { role: 'user', content: cleanedMessage }
         ],
         model: 'llama-3.3-70b-versatile',
       });
       reply = completion.choices[0]?.message?.content;
     } else if (genAI) {
-      // Gemini Chat Fallback
       if (!chatSessions.has(sid)) chatSessions.set(sid, []);
       const history = chatSessions.get(sid);
       const model = genAI.getGenerativeModel({ 
@@ -288,22 +313,23 @@ ${JSON.stringify(contextData)}
         systemInstruction: `You are "Advisor AI", an elite financial advisor. Context: ${JSON.stringify(contextData)}. Use Markdown. Be professional and data-driven.`
       });
       const chat = model.startChat({ history });
-      const result = await chat.sendMessage(message);
+      const result = await chat.sendMessage(cleanedMessage);
       reply = result.response.text();
     }
 
     res.json({ reply, sessionId: sid });
 
   } catch (err) {
-    console.error('Chat error:', err.message);
+    console.error('❌ AI Chat error:', err.message);
     // Fallback rule-based chat on quota/rate-limit
-    const msg = (req.body.message || '').toLowerCase();
+    const msg = cleanedMessage.toLowerCase();
     let reply = '';
     if (msg.includes('buy')) reply = '📈 **BUY Strategy**: Look for stocks near 52-week lows with P/E below 25 and positive momentum. Check the Smart Signals tab for live AI picks!';
     else if (msg.includes('sell')) reply = '📉 **SELL Strategy**: Consider selling when a stock is within 5% of its 52-week high or P/E exceeds 60. Always set stop-losses at 7-8% below your buy price.';
     else if (msg.includes('crypto') || msg.includes('bitcoin')) reply = '₿ **Crypto**: Bitcoin is digital gold — best for long-term holds. Ethereum has strong fundamentals. Never invest more than 10-15% of portfolio in crypto due to volatility.';
     else if (msg.includes('portfolio')) reply = '💼 **Portfolio**: A balanced mix — 40% large-cap stocks, 20% growth stocks, 20% Indian blue-chips, 10% crypto, 10% cash/bonds. Rebalance quarterly!';
-    else reply = '⚡ The AI quota is temporarily rate-limited (free tier). Smart rule-based answers are still available! Ask me about buy/sell strategy, crypto, or portfolio advice.';
-    return res.json({ reply, sessionId: req.body.sessionId || 'default' });
+    else reply = '⚡ The AI quota is temporarily rate-limited. Smart rule-based answers are still available! Ask me about buy/sell strategy, crypto, or portfolio advice.';
+    
+    return res.json({ reply, sessionId: sid });
   }
 };

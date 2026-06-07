@@ -15,14 +15,31 @@ import { MarketProvider } from './context/MarketContext';
 import { UserProvider, useUser } from './context/UserContext';
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, loading } = useUser();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neu-bg text-neu-primary font-dm-sans">
+        <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-bold text-xs tracking-widest uppercase opacity-75">Restoring Secure Session...</p>
+      </div>
+    );
+  }
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 function AppContent() {
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, loading } = useUser();
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neu-bg text-neu-primary font-dm-sans">
+        <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-bold text-xs tracking-widest uppercase opacity-75">Initializing Wealth Terminal...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-neu-bg text-neu-primary font-dm-sans selection:bg-neu-accent selection:text-white">

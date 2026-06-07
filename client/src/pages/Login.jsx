@@ -33,17 +33,14 @@ export default function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      login({
-        name: isSignup ? formData.name : (formData.email.split('@')[0] || 'User'),
-        email: formData.email,
-      });
-      
-      setLoading(false);
-      navigate('/dashboard');
-    }, 1500);
+    await login({
+      name: isSignup ? formData.name : '',
+      email: formData.email,
+      password: formData.password,
+      isSignup
+    });
+    setLoading(false);
+    navigate('/dashboard');
   };
 
   return (

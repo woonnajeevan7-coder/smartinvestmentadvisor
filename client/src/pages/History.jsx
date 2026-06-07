@@ -75,20 +75,24 @@ export default function History() {
       const { type, symbol, price, quantity, amount, date } = tx;
       const s = symbol || "";
       const isTrade = type === 'BUY' || type === 'SELL';
-      const txValue = amount ?? (price * quantity) ?? 0;
+      
+      const numAmount = amount !== null && amount !== undefined ? Number(amount) : null;
+      const numPrice = Number(price || 0);
+      const numQty = Number(quantity || 0);
+      const txValue = numAmount !== null ? numAmount : (numPrice * numQty);
 
       // Update Portfolio State
       if (type === 'BUY') {
         currentCash -= txValue;
         if (!holdings[s]) holdings[s] = { qty: 0, totalCost: 0 };
-        holdings[s].qty += (quantity || 0);
+        holdings[s].qty += numQty;
         holdings[s].totalCost += txValue;
       } else if (type === 'SELL') {
         currentCash += txValue;
         if (holdings[s] && holdings[s].qty > 0) {
           const avgCost = holdings[s].totalCost / holdings[s].qty;
-          const soldCostBasis = avgCost * (quantity || 0);
-          holdings[s].qty -= (quantity || 0);
+          const soldCostBasis = avgCost * numQty;
+          holdings[s].qty -= numQty;
           holdings[s].totalCost -= soldCostBasis;
         }
       } else if (type === 'Deposit') {
@@ -102,10 +106,11 @@ export default function History() {
       Object.keys(holdings).forEach(sym => {
         const h = holdings[sym];
         const live = marketMap[sym];
-        mktVal += h.qty * (live?.price || (h.totalCost / (h.qty || 1)));
+        const livePrice = live && live.price !== undefined ? Number(live.price) : (h.totalCost / (h.qty || 1));
+        mktVal += h.qty * livePrice;
       });
 
-      const totalWealth = Number((currentCash + mktVal).toFixed(2));
+      const totalWealth = Number((Number(currentCash) + Number(mktVal)).toFixed(2));
       const dateObj = new Date(date);
       const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
       heatmap[dateKey] = (heatmap[dateKey] || 0) + 1;
@@ -532,7 +537,7 @@ export default function History() {
                         {tx.type}
                       </span>
                     </td>
-                    <td className="py-6 text-right font-black text-neu-primary">${(tx.price || tx.amount)?.toFixed(2)}</td>
+                    <td className="py-6 text-right font-black text-neu-primary">${Number(tx.price || tx.amount || 0).toFixed(2)}</td>
                     <td className="py-6 text-right font-black text-neu-primary font-jakarta">${tx.total?.toLocaleString()}</td>
                     <td className="py-6 text-right">
                       <span className={`px-2 py-1 rounded-lg font-black text-[10px] ${pl >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>

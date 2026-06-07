@@ -217,7 +217,7 @@ const SUGGESTED = [
 ];
 
 /**
- * AI Advisor Page Component
+ * AI Smart Signals Page Component
  * 
  * A sophisticated dual-mode intelligence interface:
  * 1. Market Signals: Provides AI-driven BUY/SELL/HOLD recommendations with confidence levels.
@@ -378,7 +378,7 @@ export default function AIAdvisor() {
             <Brain size={28} className="text-white" />
           </div>
           <div>
-            <h1 className="text-4xl font-black text-neu-primary font-jakarta tracking-tight">AI Advisor</h1>
+            <h1 className="text-4xl font-black text-neu-primary font-jakarta tracking-tight">AI Smart Signals</h1>
             <p className="text-neu-muted font-dm-sans text-sm font-bold opacity-70 tracking-wide uppercase">Institutional-grade market intelligence</p>
           </div>
         </div>

@@ -1,0 +1,37 @@
+-- Additional schema for banking and trading functionality
+
+USE smartinvestmentadvisor;
+
+-- Add balance to USER table if not exists
+ALTER TABLE USER ADD COLUMN IF NOT EXISTS balance DECIMAL(15,2) DEFAULT 0.00;
+ALTER TABLE USER ADD COLUMN IF NOT EXISTS total_deposited DECIMAL(15,2) DEFAULT 0.00;
+ALTER TABLE USER ADD COLUMN IF NOT EXISTS total_withdrawn DECIMAL(15,2) DEFAULT 0.00;
+
+-- Table: TRANSACTIONS
+CREATE TABLE IF NOT EXISTS TRANSACTIONS (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    type ENUM('BUY', 'SELL', 'Deposit', 'Withdraw') NOT NULL,
+    symbol VARCHAR(20),
+    name VARCHAR(255),
+    amount DECIMAL(15,2) NOT NULL,
+    quantity INT DEFAULT 0,
+    price DECIMAL(15,2) DEFAULT 0.00,
+    method VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'Completed',
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES USER(id) ON DELETE CASCADE
+);
+
+-- Table: HOLDINGS
+CREATE TABLE IF NOT EXISTS HOLDINGS (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    symbol VARCHAR(20) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    avg_price DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY (user_id, symbol),
+    FOREIGN KEY (user_id) REFERENCES USER(id) ON DELETE CASCADE
+);

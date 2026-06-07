@@ -184,7 +184,7 @@ export default function StockDetail({ stock, onClose }) {
    * Processes the BUY or SELL request through the UserContext
    * providing instant feedback to the user.
    */
-  const handleTransaction = () => {
+  const handleTransaction = async () => {
     const currentPrice = data?.price || stock.price;
     
     if (!currentPrice) {
@@ -200,9 +200,9 @@ export default function StockDetail({ stock, onClose }) {
 
     let result;
     if (activeTab === 'BUY') {
-      result = buyStock({ symbol, name: data?.name || stock.name }, quantity, tradePrice);
+      result = await buyStock({ symbol, name: data?.name || stock.name }, quantity, tradePrice);
     } else {
-      result = sellStock(symbol, quantity, tradePrice);
+      result = await sellStock(symbol, quantity, tradePrice);
     }
     
     setStatus({ 

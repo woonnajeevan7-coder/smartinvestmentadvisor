@@ -136,16 +136,18 @@ export default function Banking() {
 
     setLoading(true);
 
-    // Simulate API Delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
+    let res;
     if (activeTab === 'deposit') {
-      depositFunds(numAmount, method);
-      setFeedback({ type: 'success', message: `Successfully deposited $${numAmount.toLocaleString()}` });
+      res = await depositFunds(numAmount, method);
+      if (res && res.success !== false) {
+        setFeedback({ type: 'success', message: `Successfully deposited $${numAmount.toLocaleString()}` });
+      } else {
+        setFeedback({ type: 'error', message: res?.message || 'Deposit failed.' });
+      }
     } else {
-      const res = withdrawFunds(numAmount, method);
-      if (res && !res.success) {
-        setFeedback({ type: 'error', message: res.message });
+      res = await withdrawFunds(numAmount, method);
+      if (res && res.success === false) {
+        setFeedback({ type: 'error', message: res.message || 'Withdrawal failed.' });
         setLoading(false);
         return;
       }
